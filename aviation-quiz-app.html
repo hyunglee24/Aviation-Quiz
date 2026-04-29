@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AviationQuiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root {
+    --navy: #0a1628; --navy2: #0f2044;
+    --sky: #2563eb; --sky-light: #3b82f6;
+    --gold: #f59e0b; --gold-light: #fbbf24;
+    --white: #ffffff;
+    --gray-400: #94a3b8; --gray-600: #475569;
+    --green: #10b981; --red: #ef4444;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Pretendard',-apple-system,sans-serif; background:var(--navy); color:var(--white); min-height:100vh; overflow-x:hidden; }
+  .bg-glow { position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(ellipse 80% 50% at 20% 10%,rgba(37,99,235,.18) 0%,transparent 60%),
+               radial-gradient(ellipse 60% 40% at 80% 90%,rgba(245,158,11,.10) 0%,transparent 60%); }
+  .stars { position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:radial-gradient(1px 1px at 15% 20%,rgba(255,255,255,.5) 0%,transparent 100%),
+    radial-gradient(1px 1px at 35% 60%,rgba(255,255,255,.3) 0%,transparent 100%),
+    radial-gradient(1px 1px at 60% 15%,rgba(255,255,255,.4) 0%,transparent 100%),
+    radial-gradient(1px 1px at 80% 45%,rgba(255,255,255,.25) 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 90% 10%,rgba(255,255,255,.4) 0%,transparent 100%),
+    radial-gradient(1px 1px at 5% 75%,rgba(255,255,255,.3) 0%,transparent 100%); }
+  .app-wrap { position:relative;z-index:1;max-width:800px;margin:0 auto;padding:24px 16px 60px;min-height:100vh; }
+
+  /* 헤더 */
+  .header { display:flex;align-items:center;justify-content:space-between;margin-bottom:28px; }
+  .logo { display:flex;align-items:center;gap:10px; }
+  .logo-icon { font-size:28px; }
+  .logo-text { font-size:18px;font-weight:800;letter-spacing:-.5px;
+    background:linear-gradient(135deg,var(--white) 0%,var(--gold-light) 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent; }
+  .logo-sub { font-size:11px;color:var(--gray-400);-webkit-text-fill-color:var(--gray-400); }
+  .auth-bar { display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end; }
+  .user-info { display:flex;align-items:center;gap:8px; }
+  .user-avatar { width:30px;height:30px;border-radius:50%;border:2px solid var(--sky);object-fit:cover; }
+  .user-name { font-size:12px;font-weight:600;color:var(--gray-400);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .sync-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+  .sync-dot.ok { background:var(--green); }
+  .sync-dot.off { background:var(--gray-400); }
+  .sync-dot.syncing { background:var(--sky-light);animation:pulse .8s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+
+  /* 로그인 카드 */
+  .login-card { background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:20px;padding:40px 28px;text-align:center;margin-bottom:20px; }
+  .login-icon { font-size:52px;margin-bottom:16px; }
+  .login-title { font-size:20px;font-weight:800;margin-bottom:8px; }
+  .login-sub { font-size:14px;color:var(--gray-400);margin-bottom:24px;line-height:1.6; }
+  .login-features { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;text-align:left; }
+  .login-feat { background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 14px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px; }
+
+  /* 탭 */
+  .tabs { display:flex;gap:4px;background:rgba(255,255,255,.06);border-radius:12px;padding:4px;margin-bottom:24px; }
+  .tab-btn { flex:1;padding:10px;background:none;border:none;cursor:pointer;border-radius:9px;color:var(--gray-400);font-family:'Pretendard',sans-serif;font-size:14px;font-weight:600;transition:all .2s; }
+  .tab-btn.active { background:var(--sky);color:var(--white);box-shadow:0 4px 16px rgba(37,99,235,.4); }
+  .tab-btn:hover:not(.active) { color:var(--white); }
+
+  /* 카드 */
+  .card { background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:20px;padding:28px;margin-bottom:20px;backdrop-filter:blur(8px); }
+  .card-title { font-size:15px;font-weight:700;color:var(--gold-light);margin-bottom:16px;display:flex;align-items:center;gap:8px; }
+
+  /* 입력 */
+  input,textarea,select { width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--white);font-family:'Pretendard',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:vertical;transition:border-color .2s,background .2s; }
+  input:focus,textarea:focus,select:focus { border-color:var(--sky-light);background:rgba(37,99,235,.1); }
+  input::placeholder,textarea::placeholder { color:var(--gray-400); }
+  select option { background:var(--navy2); }
+  label { display:block;font-size:12px;font-weight:600;color:var(--gray-400);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px; }
+  .field { margin-bottom:14px; }
+
+  /* 버튼 */
+  .btn { display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border:none;border-radius:10px;font-family:'Pretendard',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap; }
+  .btn-primary { background:linear-gradient(135deg,var(--sky) 0%,#1d4ed8 100%);color:var(--white);box-shadow:0 4px 16px rgba(37,99,235,.35); }
+  .btn-primary:hover { transform:translateY(-1px);box-shadow:0 6px 20px rgba(37,99,235,.5); }
+  .btn-gold { background:linear-gradient(135deg,var(--gold) 0%,#d97706 100%);color:var(--navy);box-shadow:0 4px 16px rgba(245,158,11,.35); }
+  .btn-gold:hover { transform:translateY(-1px); }
+  .btn-ghost { background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--white); }
+  .btn-ghost:hover { background:rgba(255,255,255,.13); }
+  .btn-sm { padding:8px 14px;font-size:12px; }
+  .btn-danger { background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:var(--red); }
+  .btn-danger:hover { background:rgba(239,68,68,.25); }
+  .btn:disabled { opacity:.5;cursor:not-allowed;transform:none!important; }
+  .btn-full { width:100%; }
+
+  /* 동기화 배너 */
+  .sync-banner { background:rgba(37,99,235,.10);border:1px solid rgba(37,99,235,.25);border-radius:14px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap; }
+  .sync-banner-text { font-size:13px;color:var(--sky-light);font-weight:600; }
+  .sync-banner-sub { font-size:11px;color:var(--gray-400);margin-top:2px; }
+
+  /* 문제 목록 */
+  .q-list { display:flex;flex-direction:column;gap:12px; }
+  .q-item { background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:16px 18px;display:flex;align-items:flex-start;gap:14px; }
+  .q-num { min-width:28px;height:28px;background:var(--sky);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700; }
+  .q-text-wrap { flex:1;min-width:0; }
+  .q-text { font-size:14px;font-weight:500;margin-bottom:4px; }
+  .q-ans { font-size:12px;color:var(--gold-light); }
+
+  /* 빈 상태 */
+  .empty { text-align:center;padding:48px 24px;color:var(--gray-400); }
+  .empty-icon { font-size:48px;margin-bottom:12px; }
+
+  /* 업로드 */
+  .upload-zone { border:2px dashed rgba(255,255,255,.2);border-radius:16px;padding:36px 24px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.03); }
+  .upload-zone:hover { border-color:var(--sky-light);background:rgba(37,99,235,.08); }
+  .upload-zone.dragging { border-color:var(--gold);background:rgba(245,158,11,.08); }
+  .upload-icon { font-size:42px;margin-bottom:10px; }
+  .upload-text { font-size:15px;font-weight:600;margin-bottom:4px; }
+  .upload-sub { font-size:12px;color:var(--gray-400); }
+  #pdf-file-input { display:none; }
+
+  /* 퀴즈 */
+  .quiz-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:20px; }
+  .quiz-badge { background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;color:var(--gold-light); }
+  .progress-bar-wrap { height:6px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;margin-bottom:24px; }
+  .progress-bar-fill { height:100%;background:linear-gradient(90deg,var(--sky) 0%,var(--gold) 100%);border-radius:99px;transition:width .4s ease; }
+  .quiz-question-card { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:28px;margin-bottom:20px; }
+  .quiz-question-num { font-size:12px;font-weight:700;letter-spacing:1px;color:var(--sky-light);text-transform:uppercase;margin-bottom:10px; }
+  .quiz-question-text { font-size:18px;font-weight:700;line-height:1.6; }
+  .options-list { display:flex;flex-direction:column;gap:10px; }
+  .option-btn { width:100%;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;text-align:left;font-family:'Pretendard',sans-serif;font-size:15px;font-weight:500;color:var(--white);transition:all .2s; }
+  .option-btn:hover:not(:disabled) { background:rgba(37,99,235,.15);border-color:var(--sky-light);transform:translateX(3px); }
+  .option-btn:disabled { cursor:default; }
+  .option-btn.selected-correct { background:rgba(16,185,129,.15);border-color:var(--green); }
+  .option-btn.selected-wrong { background:rgba(239,68,68,.15);border-color:var(--red); }
+  .option-btn.show-correct { background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.4);color:var(--green); }
+  .option-label { min-width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0; }
+  .option-btn.selected-correct .option-label { background:var(--green);color:white; }
+  .option-btn.selected-wrong .option-label { background:var(--red);color:white; }
+  .option-btn.show-correct .option-label { background:rgba(16,185,129,.3);color:var(--green); }
+  .result-banner { border-radius:14px;padding:16px 20px;display:none;align-items:center;gap:12px;margin-top:16px;font-size:14px;font-weight:600; }
+  .result-banner.correct { background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:var(--green);display:flex; }
+  .result-banner.wrong { background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:var(--red);display:flex; }
+  .quiz-footer { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px; }
+  .score-chip { display:flex;align-items:center;gap:6px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:8px 14px;font-size:14px;font-weight:700;color:var(--gold-light); }
+
+  /* 결과 */
+  .result-screen { text-align:center;padding:12px 0; }
+  .result-score-ring { width:150px;height:150px;margin:0 auto 24px;position:relative; }
+  .result-score-ring svg { transform:rotate(-90deg); }
+  .result-score-center { position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center; }
+  .result-score-num { font-size:36px;font-weight:800;background:linear-gradient(135deg,var(--white),var(--gold-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent; }
+  .result-score-label { font-size:12px;color:var(--gray-400); }
+  .result-title { font-size:24px;font-weight:800;margin-bottom:8px; }
+  .result-sub { font-size:14px;color:var(--gray-400);margin-bottom:28px; }
+  .result-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px; }
+  .result-stat { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:16px 10px;text-align:center; }
+  .result-stat-num { font-size:24px;font-weight:800;margin-bottom:4px; }
+  .result-stat-num.g { color:var(--green); }
+  .result-stat-num.r { color:var(--red); }
+  .result-stat-num.b { color:var(--sky-light); }
+  .result-stat-label { font-size:11px;color:var(--gray-400);font-weight:500; }
+  .result-btns { display:flex;gap:10px;justify-content:center;flex-wrap:wrap; }
+
+  /* 로딩 */
+  .loading-overlay { display:none;position:fixed;inset:0;background:rgba(10,22,40,.85);backdrop-filter:blur(4px);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:16px; }
+  .loading-overlay.show { display:flex; }
+  .spinner { width:48px;height:48px;border:4px solid rgba(255,255,255,.1);border-top-color:var(--sky-light);border-radius:50%;animation:spin .8s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .loading-text { font-size:15px;color:var(--gray-400); }
+
+  /* 토스트 */
+  .toast { position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:rgba(30,40,60,.96);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 20px;font-size:14px;font-weight:600;z-index:9999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;backdrop-filter:blur(8px); }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+  .toast.success { color:var(--green);border-color:rgba(16,185,129,.3); }
+  .toast.error { color:var(--red);border-color:rgba(239,68,68,.3); }
+  .toast.info { color:var(--sky-light);border-color:rgba(37,99,235,.3); }
+
+  .section { display:none; }
+  .section.active { display:block; }
+  .divider { height:1px;background:rgba(255,255,255,.08);margin:20px 0; }
+
+  @media(max-width:600px){
+    .quiz-question-text{font-size:16px;}
+    .option-btn{font-size:14px;padding:13px 14px;}
+    .login-features{grid-template-columns:1fr;}
+    .header{flex-wrap:wrap;gap:12px;}
+  }
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="stars"></div>
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">처리 중...</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="app-wrap">
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">✈️</div>
+      <div>
+        <div class="logo-text">AviationQuiz</div>
+        <div class="logo-sub">항공사 시험 준비</div>
+      </div>
+    </div>
+    <div class="auth-bar" id="auth-bar">
+      <div class="sync-dot off" id="sync-dot" title="비로그인"></div>
+      <button class="btn btn-ghost btn-sm" onclick="handleAuthClick()" id="auth-btn">Google 로그인</button>
+    </div>
+  </div>
+
+  <!-- 로그인 유도 -->
+  <div id="login-prompt" class="login-card">
+    <div class="login-icon">🛫</div>
+    <div class="login-title">Google 계정으로 시작하세요</div>
+    <div class="login-sub">로그인하면 문제가 Google Drive에 자동 저장되어<br>갤탭, 아이폰 어디서나 동기화됩니다.</div>
+    <div class="login-features">
+      <div class="login-feat">☁️ Drive 자동 동기화</div>
+      <div class="login-feat">📱 모든 기기 공유</div>
+      <div class="login-feat">🔄 실시간 백업</div>
+      <div class="login-feat">🔒 내 계정에만 저장</div>
+    </div>
+    <div id="g-signin-btn" style="display:flex;justify-content:center;margin-bottom:14px;"></div>
+    <button class="btn btn-ghost" onclick="continueWithoutLogin()" style="font-size:13px;color:var(--gray-400);">로그인 없이 계속하기 (기기 내 저장)</button>
+  </div>
+
+  <!-- 메인 앱 -->
+  <div id="main-app" style="display:none;">
+
+    <div class="sync-banner" id="sync-banner" style="display:none;">
+      <div>
+        <div class="sync-banner-text" id="sync-banner-text">☁️ Google Drive 연동됨</div>
+        <div class="sync-banner-sub" id="sync-banner-sub">마지막 동기화: -</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="syncNow()">🔄 지금 동기화</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('manage')">📋 문제 관리</button>
+      <button class="tab-btn" onclick="switchTab('quiz')">🎯 퀴즈 시작</button>
+    </div>
+
+    <!-- 문제 관리 -->
+    <div class="section active" id="section-manage">
+      <div class="card">
+        <div class="card-title">📄 PDF로 문제 자동 추출</div>
+        <div class="upload-zone" id="upload-zone"
+             onclick="document.getElementById('pdf-file-input').click()"
+             ondragover="handleDragOver(event)"
+             ondragleave="handleDragLeave(event)"
+             ondrop="handleDrop(event)">
+          <div class="upload-icon">📂</div>
+          <div class="upload-text">PDF 파일을 클릭하거나 드래그해서 올려주세요</div>
+          <div class="upload-sub">AI가 문제·보기·정답을 자동으로 인식합니다</div>
+        </div>
+        <input type="file" id="pdf-file-input" accept=".pdf" onchange="handlePdfUpload(event)">
+      </div>
+
+      <div style="text-align:center;font-size:13px;color:var(--gray-400);margin:-8px 0 16px;">— 또는 직접 입력 —</div>
+
+      <div class="card">
+        <div class="card-title">✏️ 문제 직접 입력</div>
+        <div class="field"><label>문제</label><textarea id="q-text" rows="3" placeholder="예) 비행 중 엔진 화재 발생 시 첫 번째 조치는?"></textarea></div>
+        <div class="field"><label>① 보기 1</label><input type="text" id="opt1" placeholder="보기 1"></div>
+        <div class="field"><label>② 보기 2</label><input type="text" id="opt2" placeholder="보기 2"></div>
+        <div class="field"><label>③ 보기 3</label><input type="text" id="opt3" placeholder="보기 3"></div>
+        <div class="field"><label>④ 보기 4</label><input type="text" id="opt4" placeholder="보기 4"></div>
+        <div class="field">
+          <label>정답</label>
+          <select id="q-answer">
+            <option value="">정답 선택</option>
+            <option value="0">① 보기 1</option>
+            <option value="1">② 보기 2</option>
+            <option value="2">③ 보기 3</option>
+            <option value="3">④ 보기 4</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="addQuestion()">➕ 문제 추가</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="justify-content:space-between;">
+          <span>📚 등록된 문제 <span id="q-count-badge" style="background:var(--sky);border-radius:20px;padding:2px 10px;font-size:12px;margin-left:4px;">0</span></span>
+          <button class="btn btn-danger btn-sm" onclick="clearAll()" id="clear-btn" style="display:none">🗑 전체 삭제</button>
+        </div>
+        <div class="q-list" id="q-list">
+          <div class="empty"><div class="empty-icon">📝</div><div>아직 등록된 문제가 없어요.<br>PDF를 업로드하거나 직접 입력해주세요.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 퀴즈 -->
+    <div class="section" id="section-quiz">
+      <div id="quiz-idle">
+        <div class="card" style="text-align:center;padding:40px 28px;">
+          <div style="font-size:56px;margin-bottom:16px;">🛫</div>
+          <div style="font-size:20px;font-weight:800;margin-bottom:8px;">퀴즈 준비 완료</div>
+          <div style="font-size:14px;color:var(--gray-400);margin-bottom:28px;" id="quiz-ready-msg">문제를 먼저 추가해주세요.</div>
+          <div class="card" style="text-align:left;margin-bottom:20px;">
+            <div class="field"><label>출제 방식</label>
+              <select id="quiz-mode">
+                <option value="all">전체 순서대로</option>
+                <option value="random">전체 랜덤</option>
+                <option value="wrong">오답만 반복</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0"><label>문제 수 제한</label>
+              <select id="quiz-limit">
+                <option value="0">전체</option>
+                <option value="10">10문제</option>
+                <option value="20">20문제</option>
+                <option value="30">30문제</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-gold btn-full" onclick="startQuiz()" id="start-btn" style="font-size:16px;padding:16px;">🚀 퀴즈 시작</button>
+        </div>
+      </div>
+
+      <div id="quiz-playing" style="display:none;">
+        <div class="quiz-header">
+          <div class="quiz-badge" id="quiz-progress-label">1 / 10</div>
+          <button class="btn btn-ghost btn-sm" onclick="endQuiz()">종료</button>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+        <div class="quiz-question-card">
+          <div class="quiz-question-num" id="q-num-label">문제 1</div>
+          <div class="quiz-question-text" id="q-display-text"></div>
+        </div>
+        <div class="options-list" id="options-list"></div>
+        <div class="result-banner" id="result-banner">
+          <span id="result-icon" style="font-size:22px;"></span>
+          <span id="result-msg"></span>
+        </div>
+        <div class="divider"></div>
+        <div class="quiz-footer">
+          <div class="score-chip">⭐ <span id="live-score">0</span> / <span id="live-total">0</span> 정답</div>
+          <button class="btn btn-primary" onclick="nextQuestion()" id="next-btn" disabled>다음 문제 →</button>
+        </div>
+      </div>
+
+      <div id="quiz-result" style="display:none;">
+        <div class="card result-screen">
+          <div class="result-score-ring">
+            <svg width="150" height="150" viewBox="0 0 150 150">
+              <circle cx="75" cy="75" r="62" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"/>
+              <circle cx="75" cy="75" r="62" fill="none" stroke="url(#rg)" stroke-width="10"
+                stroke-dasharray="389.6" stroke-dashoffset="389.6" stroke-linecap="round" id="score-circle"/>
+              <defs><linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#2563eb"/><stop offset="100%" stop-color="#f59e0b"/>
+              </linearGradient></defs>
+            </svg>
+            <div class="result-score-center">
+              <div class="result-score-num" id="result-pct">0%</div>
+              <div class="result-score-label">정답률</div>
+            </div>
+          </div>
+          <div class="result-title" id="result-title"></div>
+          <div class="result-sub" id="result-sub"></div>
+          <div class="result-grid">
+            <div class="result-stat"><div class="result-stat-num b" id="rs-total">0</div><div class="result-stat-label">총 문제</div></div>
+            <div class="result-stat"><div class="result-stat-num g" id="rs-correct">0</div><div class="result-stat-label">정답</div></div>
+            <div class="result-stat"><div class="result-stat-num r" id="rs-wrong">0</div><div class="result-stat-label">오답</div></div>
+          </div>
+          <div class="result-btns">
+            <button class="btn btn-ghost" onclick="showIdle()">← 처음으로</button>
+            <button class="btn btn-primary" onclick="startQuiz()">🔄 다시 풀기</button>
+            <button class="btn btn-gold" onclick="retryWrong()" id="retry-wrong-btn">❌ 오답만</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 상수 ──
+const CLIENT_ID = '1015450001007-229o017odsh3m3gb97d7n8nhukspohm6.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const FILE_NAME = 'aviation-quiz-data.json';
+
+// ── 상태 ──
+let questions = [];
+let quizQueue = [], currentIdx = 0, score = 0, answered = false;
+let wrongIds = new Set();
+let sessionWrong = [];
+let tokenClient = null;
+let accessToken = null;
+let driveFileId = null;
+let isLoggedIn = false;
+let lastSync = null;
+let userProfile = null;
+
+// ── GIS 초기화 ──
+window.onload = function() {
+  const wait = setInterval(() => {
+    if (window.google && google.accounts) {
+      clearInterval(wait);
+      initGoogle();
+    }
+  }, 300);
+};
+
+function initGoogle() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { showToast('로그인 실패: ' + resp.error, 'error'); return; }
+      accessToken = resp.access_token;
+      await onLoginSuccess();
+    }
+  });
+
+  google.accounts.id.initialize({
+    client_id: CLIENT_ID,
+    callback: () => tokenClient.requestAccessToken({ prompt: '' })
+  });
+  google.accounts.id.renderButton(document.getElementById('g-signin-btn'), {
+    theme: 'outline', size: 'large', text: 'signin_with', locale: 'ko', width: 260
+  });
+}
+
+function handleAuthClick() {
+  if (isLoggedIn) {
+    if (confirm('로그아웃 하시겠습니까?')) { google.accounts.oauth2.revoke(accessToken, ()=>{}); location.reload(); }
+  } else {
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  }
+}
+
+async function onLoginSuccess() {
+  isLoggedIn = true;
+  showLoading('Drive에서 데이터 불러오는 중...');
+  try {
+    userProfile = await fetchProfile();
+    updateAuthUI();
+    await loadFromDrive();
+  } catch(e) {
+    showToast('Drive 연결 오류: ' + e.message, 'error');
+  }
+  hideLoading();
+  showMainApp();
+}
+
+async function fetchProfile() {
+  const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: 'Bearer ' + accessToken }
+  });
+  return r.json();
+}
+
+function updateAuthUI() {
+  const bar = document.getElementById('auth-bar');
+  // 아바타 + 이름 삽입
+  if (userProfile && userProfile.picture) {
+    const wrap = document.createElement('div');
+    wrap.className = 'user-info';
+    const img = document.createElement('img');
+    img.src = userProfile.picture; img.className = 'user-avatar';
+    const name = document.createElement('span');
+    name.className = 'user-name'; name.textContent = userProfile.name || '';
+    wrap.appendChild(img); wrap.appendChild(name);
+    bar.insertBefore(wrap, bar.firstChild);
+  }
+  document.getElementById('sync-dot').className = 'sync-dot ok';
+  document.getElementById('auth-btn').textContent = '로그아웃';
+  document.getElementById('sync-banner').style.display = 'flex';
+  document.getElementById('sync-banner-text').textContent = '☁️ Google Drive 연동됨' + (userProfile?.email ? ' — ' + userProfile.email : '');
+}
+
+function continueWithoutLogin() {
+  questions = JSON.parse(localStorage.getItem('aq-questions') || '[]');
+  showMainApp();
+}
+
+function showMainApp() {
+  document.getElementById('login-prompt').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  renderList(); updateQuizIdle();
+}
+
+// ── Drive API ──
+async function driveReq(url, opts = {}) {
+  const headers = { Authorization: 'Bearer ' + accessToken, ...(opts.headers || {}) };
+  const r = await fetch(url, { ...opts, headers });
+  if (!r.ok) throw new Error('Drive API ' + r.status);
+  return r;
+}
+
+async function findFile() {
+  const q = encodeURIComponent(`name='${FILE_NAME}' and trashed=false`);
+  const r = await driveReq(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`);
+  const d = await r.json();
+  return d.files && d.files.length > 0 ? d.files[0].id : null;
+}
+
+async function loadFromDrive() {
+  driveFileId = await findFile();
+  if (!driveFileId) { questions = []; return; }
+  const r = await driveReq(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`);
+  const d = await r.json();
+  questions = Array.isArray(d.questions) ? d.questions : [];
+  wrongIds = new Set(d.wrongIds || []);
+  lastSync = new Date();
+  updateSyncTime();
+}
+
+async function saveToDrive() {
+  const body = JSON.stringify({ questions, wrongIds: [...wrongIds], savedAt: new Date().toISOString() });
+  if (driveFileId) {
+    await driveReq(
+      `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,
+      { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body }
+    );
+  } else {
+    const meta = await driveReq(
+      'https://www.googleapis.com/drive/v3/files',
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: FILE_NAME, mimeType: 'application/json' }) }
+    );
+    const md = await meta.json();
+    driveFileId = md.id;
+    await driveReq(
+      `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,
+      { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body }
+    );
+  }
+  lastSync = new Date();
+  updateSyncTime();
+}
+
+function updateSyncTime() {
+  if (!lastSync) return;
+  const t = lastSync.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('sync-banner-sub').textContent = '마지막 동기화: ' + t;
+  document.getElementById('sync-dot').className = 'sync-dot ok';
+}
+
+async function save() {
+  if (isLoggedIn) {
+    document.getElementById('sync-dot').className = 'sync-dot syncing';
+    try { await saveToDrive(); }
+    catch(e) { showToast('Drive 저장 실패: ' + e.message, 'error'); document.getElementById('sync-dot').className = 'sync-dot off'; }
+  } else {
+    localStorage.setItem('aq-questions', JSON.stringify(questions));
+  }
+}
+
+async function syncNow() {
+  if (!isLoggedIn) return;
+  showLoading('Drive 동기화 중...');
+  try { await saveToDrive(); showToast('동기화 완료! ✅', 'success'); }
+  catch(e) { showToast('동기화 실패: ' + e.message, 'error'); }
+  hideLoading();
+}
+
+// ── 문제 관리 ──
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderList() {
+  const list = document.getElementById('q-list');
+  const n = questions.length;
+  document.getElementById('q-count-badge').textContent = n;
+  document.getElementById('clear-btn').style.display = n > 0 ? '' : 'none';
+  if (n === 0) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">📝</div><div>아직 등록된 문제가 없어요.<br>PDF를 업로드하거나 직접 입력해주세요.</div></div>`;
+    return;
+  }
+  list.innerHTML = questions.map((q, i) => `
+    <div class="q-item">
+      <div class="q-num">${i+1}</div>
+      <div class="q-text-wrap">
+        <div class="q-text">${escHtml(q.text)}</div>
+        <div class="q-ans">정답: ${escHtml(q.options[q.answer])}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="removeQ(${i})">🗑</button>
+    </div>`).join('');
+}
+
+async function addQuestion() {
+  const text = document.getElementById('q-text').value.trim();
+  const opts = ['opt1','opt2','opt3','opt4'].map(id => document.getElementById(id).value.trim());
+  const answer = document.getElementById('q-answer').value;
+  if (!text) return showToast('문제를 입력해주세요.', 'error');
+  if (opts.some(o => !o)) return showToast('보기를 모두 입력해주세요.', 'error');
+  if (answer === '') return showToast('정답을 선택해주세요.', 'error');
+  questions.push({ id: Date.now(), text, options: opts, answer: parseInt(answer) });
+  await save(); renderList();
+  document.getElementById('q-text').value = '';
+  ['opt1','opt2','opt3','opt4'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('q-answer').value = '';
+  showToast('문제가 추가되었습니다! ✅', 'success');
+}
+
+async function removeQ(i) { questions.splice(i,1); await save(); renderList(); }
+
+async function clearAll() {
+  if (!confirm('모든 문제를 삭제할까요?')) return;
+  questions = []; await save(); renderList();
+}
+
+// ── PDF ──
+function handleDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('dragging'); }
+function handleDragLeave() { document.getElementById('upload-zone').classList.remove('dragging'); }
+function handleDrop(e) {
+  e.preventDefault(); document.getElementById('upload-zone').classList.remove('dragging');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type === 'application/pdf') processPdf(f);
+  else showToast('PDF 파일만 지원합니다.', 'error');
+}
+function handlePdfUpload(e) { if (e.target.files[0]) processPdf(e.target.files[0]); }
+
+async function processPdf(file) {
+  showLoading('PDF 읽는 중...');
+  try {
+    const base64 = await fileToBase64(file);
+    setLoadingText('AI가 문제를 추출하는 중...');
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+            { type: 'text', text: '이 PDF에서 4지선다 문제를 모두 추출해주세요.\n반드시 아래 JSON 형식만 출력하세요. 다른 말은 하지 마세요.\n\n[\n  {\n    "text": "문제 내용",\n    "options": ["보기1","보기2","보기3","보기4"],\n    "answer": 0\n  }\n]\n\nanswer는 정답 보기의 인덱스(0~3)입니다. 문제가 없으면 빈 배열 []을 반환하세요.' }
+          ]
+        }]
+      })
+    });
+    const data = await resp.json();
+    const raw = data.content.filter(b => b.type==='text').map(b => b.text).join('');
+    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    if (!Array.isArray(parsed) || parsed.length === 0) { hideLoading(); showToast('문제를 찾지 못했어요.', 'error'); return; }
+    let added = 0;
+    for (const q of parsed) {
+      if (q.text && Array.isArray(q.options) && q.options.length === 4 && typeof q.answer === 'number') {
+        questions.push({ id: Date.now() + Math.random(), text: q.text, options: q.options, answer: q.answer });
+        added++;
+      }
+    }
+    setLoadingText('Drive에 저장 중...');
+    await save(); renderList(); hideLoading();
+    showToast(`${added}개 문제를 추출했습니다! ✅`, 'success');
+  } catch(e) {
+    hideLoading(); showToast('오류: ' + e.message, 'error');
+  }
+  document.getElementById('pdf-file-input').value = '';
+}
+
+function fileToBase64(f) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('파일 읽기 실패'));
+    r.readAsDataURL(f);
+  });
+}
+
+// ── 퀴즈 ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) =>
+    b.classList.toggle('active', (i===0&&tab==='manage')||(i===1&&tab==='quiz')));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-'+tab).classList.add('active');
+  if (tab==='quiz') updateQuizIdle();
+}
+
+function updateQuizIdle() {
+  const n = questions.length;
+  document.getElementById('quiz-ready-msg').textContent =
+    n===0 ? '문제 관리 탭에서 문제를 먼저 추가해주세요.' : `총 ${n}개 문제가 준비되었습니다.`;
+  document.getElementById('start-btn').disabled = n===0;
+}
+
+function startQuiz() {
+  if (!questions.length) return showToast('문제가 없습니다.', 'error');
+  const mode = document.getElementById('quiz-mode').value;
+  const limit = parseInt(document.getElementById('quiz-limit').value);
+  let pool = [...questions];
+  if (mode==='wrong') {
+    pool = pool.filter(q => wrongIds.has(q.id));
+    if (!pool.length) { showToast('오답 문제가 없습니다.', 'info'); return; }
+  }
+  if (mode==='random'||mode==='wrong') pool.sort(()=>Math.random()-.5);
+  if (limit>0) pool = pool.slice(0, limit);
+  quizQueue=pool; currentIdx=0; score=0; sessionWrong=[];
+  document.getElementById('quiz-idle').style.display='none';
+  document.getElementById('quiz-playing').style.display='block';
+  document.getElementById('quiz-result').style.display='none';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = quizQueue[currentIdx], total = quizQueue.length;
+  document.getElementById('q-num-label').textContent = '문제 '+(currentIdx+1);
+  document.getElementById('quiz-progress-label').textContent = (currentIdx+1)+' / '+total;
+  document.getElementById('progress-fill').style.width = (currentIdx/total*100)+'%';
+  document.getElementById('q-display-text').textContent = q.text;
+  document.getElementById('live-score').textContent = score;
+  document.getElementById('live-total').textContent = currentIdx;
+  const labels=['①','②','③','④'];
+  document.getElementById('options-list').innerHTML = q.options.map((opt,i) =>
+    `<button class="option-btn" onclick="selectAnswer(${i})">
+      <div class="option-label">${labels[i]}</div>
+      <div>${escHtml(opt)}</div>
+    </button>`).join('');
+  document.getElementById('result-banner').className = 'result-banner';
+  answered = false;
+  document.getElementById('next-btn').disabled = true;
+}
+
+async function selectAnswer(chosen) {
+  if (answered) return;
+  answered = true;
+  const q = quizQueue[currentIdx], ok = chosen===q.answer;
+  document.querySelectorAll('.option-btn').forEach((btn,i) => {
+    btn.disabled = true;
+    if (i===q.answer) btn.classList.add('show-correct');
+  });
+  if (ok) {
+    document.querySelectorAll('.option-btn')[chosen].classList.remove('show-correct');
+    document.querySelectorAll('.option-btn')[chosen].classList.add('selected-correct');
+    score++; wrongIds.delete(q.id);
+  } else {
+    document.querySelectorAll('.option-btn')[chosen].classList.add('selected-wrong');
+    wrongIds.add(q.id); sessionWrong.push(q);
+  }
+  const banner = document.getElementById('result-banner');
+  if (ok) {
+    banner.className='result-banner correct';
+    document.getElementById('result-icon').textContent='🎉';
+    document.getElementById('result-msg').textContent='정답입니다!';
+  } else {
+    banner.className='result-banner wrong';
+    document.getElementById('result-icon').textContent='❌';
+    document.getElementById('result-msg').innerHTML='오답입니다. 정답: <strong>'+escHtml(q.options[q.answer])+'</strong>';
+  }
+  document.getElementById('live-score').textContent = score;
+  document.getElementById('live-total').textContent = currentIdx+1;
+  document.getElementById('next-btn').disabled = false;
+  if (isLoggedIn) saveToDrive().catch(()=>{});
+}
+
+function nextQuestion() {
+  currentIdx++;
+  currentIdx >= quizQueue.length ? showResult() : renderQuestion();
+}
+
+function showResult() {
+  document.getElementById('quiz-playing').style.display='none';
+  document.getElementById('quiz-result').style.display='block';
+  const total=quizQueue.length, pct=Math.round(score/total*100);
+  document.getElementById('result-pct').textContent=pct+'%';
+  document.getElementById('rs-total').textContent=total;
+  document.getElementById('rs-correct').textContent=score;
+  document.getElementById('rs-wrong').textContent=total-score;
+  const [title,sub] = pct>=90?['완벽합니다! 🏆','합격권입니다. 자신감을 가지세요!']
+    :pct>=70?['잘 하셨어요! ✈️','조금만 더 하면 완벽해요.']
+    :pct>=50?['계속 도전하세요! 💪','오답을 집중적으로 복습해보세요.']
+    :['다시 도전해봐요! 📚','기초부터 차근차근 다시 풀어보세요.'];
+  document.getElementById('result-title').textContent=title;
+  document.getElementById('result-sub').textContent=sub;
+  const circ = 2*Math.PI*62;
+  const c = document.getElementById('score-circle');
+  c.style.transition='stroke-dashoffset 1s ease';
+  setTimeout(()=>{ c.style.strokeDashoffset=circ*(1-pct/100); },100);
+  document.getElementById('retry-wrong-btn').style.display=sessionWrong.length>0?'':'none';
+}
+
+function retryWrong() {
+  quizQueue=[...sessionWrong].sort(()=>Math.random()-.5);
+  currentIdx=0; score=0; sessionWrong=[];
+  document.getElementById('quiz-result').style.display='none';
+  document.getElementById('quiz-playing').style.display='block';
+  renderQuestion();
+}
+
+function endQuiz() { if(!confirm('퀴즈를 종료할까요?')) return; showIdle(); }
+function showIdle() {
+  document.getElementById('quiz-idle').style.display='block';
+  document.getElementById('quiz-playing').style.display='none';
+  document.getElementById('quiz-result').style.display='none';
+  updateQuizIdle();
+}
+
+// ── 유틸 ──
+function showLoading(m) { document.getElementById('loading-text').textContent=m; document.getElementById('loading-overlay').classList.add('show'); }
+function setLoadingText(m) { document.getElementById('loading-text').textContent=m; }
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
+let _tt;
+function showToast(msg, type='info') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type} show`;
+  clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),2800);
+}
+</script>
+</body>
+</html>
